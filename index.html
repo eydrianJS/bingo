@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingo Kuriera 📦 LIVE</title>
+  <style>
+    :root {
+      --purple: #9146ff;
+      --purple-dark: #6441a5;
+      --yellow: #ffce00;
+      --gold: #f5a623;
+      --red: #e91916;
+      --bg: #0e0e10;
+      --bg2: #18181b;
+      --bg3: #1f1f23;
+      --cell-bg: #ffffff;
+      --cell-marked: #9146ff22;
+      --cell-border: #e0e0e0;
+      --text-dark: #1a1a2e;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: #efeff1;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 8px 40px;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .title-bingo {
+      font-size: clamp(2rem, 8vw, 3.6rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--purple) 0%, #bf5fff 50%, var(--yellow) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      text-transform: uppercase;
+    }
+
+    .title-kuriera {
+      font-size: clamp(2rem, 8vw, 3.6rem);
+      font-weight: 900;
+      color: var(--yellow);
+      letter-spacing: -1px;
+      text-transform: uppercase;
+    }
+
+    .live-badge {
+      background: var(--red);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      background: #fff;
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .subtitle {
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      color: #adadb8;
+      font-style: italic;
+    }
+
+    .box-icon { font-size: 2.6rem; line-height: 1; }
+
+    /* ─── BOARD ─── */
+    .board-wrap {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+
+    .cell {
+      background: var(--cell-bg);
+      border: 2px solid var(--cell-border);
+      border-radius: var(--radius);
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s, box-shadow 0.12s, background 0.2s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+      min-height: clamp(80px, 18vw, 115px);
+      text-align: center;
+    }
+
+    .cell:active { transform: scale(0.93); }
+    .cell:not(.free):hover {
+      transform: scale(1.04);
+      box-shadow: 0 4px 18px rgba(145, 70, 255, 0.35);
+    }
+
+    .cell .icon {
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      line-height: 1;
+      transition: transform 0.2s;
+    }
+
+    .cell .label {
+      font-size: clamp(0.48rem, 1.8vw, 0.68rem);
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.25;
+    }
+
+    .cell .sub {
+      font-size: clamp(0.38rem, 1.4vw, 0.54rem);
+      color: #666;
+      font-style: italic;
+      line-height: 1.2;
+    }
+
+    /* FREE cell */
+    .cell.free {
+      background: linear-gradient(135deg, var(--yellow) 0%, var(--gold) 100%);
+      border-color: var(--gold);
+      cursor: default;
+      box-shadow: 0 2px 12px rgba(245, 166, 35, 0.4);
+    }
+
+    .cell.free .label { color: #3d1e00; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 900; }
+    .cell.free .sub   { color: #6b3a00; }
+    .cell.free .icon  { font-size: clamp(1.4rem, 4vw, 1.8rem); }
+
+    /* MARKED state */
+    .cell.marked:not(.free) {
+      background: #1a0a33;
+      border-color: var(--purple);
+    }
+
+    .cell.marked:not(.free) .label { color: #c9b8ff; }
+    .cell.marked:not(.free) .sub   { color: #8b7ab8; }
+
+    .cell.marked:not(.free) .icon {
+      filter: saturate(0.4) brightness(0.7);
+    }
+
+    .cell.marked:not(.free)::after {
+      content: '✕';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(2rem, 8vw, 3rem);
+      font-weight: 900;
+      color: var(--purple);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    /* WINNING cells highlight */
+    .cell.winning {
+      animation: pulse-win 0.7s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse-win {
+      from { box-shadow: 0 0 8px 2px var(--yellow); border-color: var(--yellow); }
+      to   { box-shadow: 0 0 22px 6px var(--gold);  border-color: var(--gold); }
+    }
+
+    /* ─── CONTROLS ─── */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+
+    button:active { transform: scale(0.95); opacity: 0.85; }
+
+    .btn-reset {
+      background: var(--bg3);
+      color: #efeff1;
+      border: 2px solid #3d3d5c;
+    }
+
+    .btn-reset:hover { border-color: var(--purple); color: #c9b8ff; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: linear-gradient(160deg, #1a0a33 0%, #0e0e10 100%);
+      border: 3px solid var(--purple);
+      border-radius: 24px;
+      padding: 36px 32px 28px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 0 60px rgba(145, 70, 255, 0.5);
+      animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal-emoji { font-size: 4rem; line-height: 1; margin-bottom: 12px; }
+
+    .modal h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--purple), var(--yellow));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .modal p {
+      color: #adadb8;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .btn-close {
+      background: linear-gradient(135deg, var(--purple), #bf5fff);
+      color: #fff;
+      padding: 12px 32px;
+      font-size: 1rem;
+      border-radius: 10px;
+    }
+
+    .btn-close:hover { opacity: 0.88; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 420px) {
+      .board { gap: 4px; }
+      .cell { min-height: 68px; padding: 5px 3px; border-radius: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <span style="font-size:2rem">📺</span>
+    <span class="title-bingo">Bingo</span>
+    <span class="title-kuriera">Kuriera</span>
+    <span class="box-icon">📦</span>
+    <span class="live-badge"><span class="live-dot"></span> LIVE</span>
+  </div>
+  <p class="subtitle">Zaznacz, gdy zdarzy się podczas jazdy na rejonie!</p>
+</header>
+
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button class="btn-reset" id="btnReset">🔄 Wyczyść kartę</button>
+  </div>
+</div>
+
+<!-- Win Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-emoji">🏆</div>
+    <h2>BINGO!</h2>
+    <p id="modalMsg">Masz 5 w rzędzie!<br>Jesteś legendą rejonu! 📦🚀</p>
+    <button class="btn-close" id="btnCloseModal">Zamknij 🎉</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<script>
+  // ─── BINGO CELLS DATA ───────────────────────────────────────────────────
+  const CELLS = [
+    { icon:'🚧', label:'Strącony pachołek',                sub: '' },
+    { icon:'🌿', label:'Przejazd po trawniku',             sub: '' },
+    { icon:'📦', label:'Zgubiona paczka',                  sub:'na chwilę... chyba' },
+    { icon:'🚶', label:'Przejazd po chodniku',             sub: '' },
+    { icon:'🚗', label:'Ominięcie szlabanu',               sub: '' },
+
+    { icon:'🐕', label:'Szczekający pies przy dostawie',   sub: '' },
+    { icon:'🪜', label:'Wnoszenie paczki po schodach',     sub: '' },
+    { icon:'📟', label:'Brak odpowiedzi na domofonie / telefonie', sub: '' },
+    { icon:'🅿️', label:'Krótkie parkowanie „na zakazie"',  sub: '' },
+    { icon:'📍', label:'Błędny adres',                     sub:'krążenie po rejonie' },
+
+    { icon:'⚖️', label:'Wyjątkowo ciężka paczka',          sub:'a co tam jest?!' },
+    { icon:'🌧️', label:'Dostawa w deszczu',                sub: '' },
+    { icon:'⭐', label:'FREE\nDostawa zaliczona!',          sub:'✓', free: true },
+    { icon:'⏰', label:'Poślizg na trasie',                 sub:'opóźnienie' },
+    { icon:'↩️', label:'Zwrot od klienta',                  sub: '' },
+
+    { icon:'🚫', label:'Zastawiony wjazd / brak miejsca do parkowania', sub: '' },
+    { icon:'🤔', label:'Klient nie wie, że ma paczkę',     sub:'to do mnie?!' },
+    { icon:'💥', label:'Uszkodzona paczka',                sub:'o nie...' },
+    { icon:'🔒', label:'Zamknięte osiedle',                sub:'brak wjazdu' },
+    { icon:'🔄', label:'Ponowna dostawa',                  sub:'klient nieobecny' },
+
+    { icon:'🛗', label:'Winda nie działa',                 sub:'i oczywiście jest na 10. piętrze' },
+    { icon:'📬', label:'Pomyłona paczka',                  sub:'zły adres / zła etykieta' },
+    { icon:'📦', label:'Kolejne odbiory',                  sub:'jeszcze tylko kilka...' },
+    { icon:'🚽', label:'Pilna „przerwa techniczna"',       sub:'gdy rejon nie poczeka' },
+    { icon:'🏁', label:'Rejon skończony wcześniej niż zwykle', sub:'legenda!' },
+  ];
+
+  const FREE_IDX = 12; // center
+  const STORAGE_KEY = 'bingo-kuriera-v1';
+
+  // Win lines: rows, cols, diagonals
+  const WIN_LINES = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24], // rows
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24], // cols
+    [0,6,12,18,24],[4,8,12,16,20]                                                 // diags
+  ];
+
+  // ─── STATE ──────────────────────────────────────────────────────────────
+  let state = loadState();
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length === 25) {
+          parsed[FREE_IDX] = true; // always marked
+          return parsed;
+        }
+      }
+    } catch {}
+    const s = new Array(25).fill(false);
+    s[FREE_IDX] = true;
+    return s;
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ─── RENDER ─────────────────────────────────────────────────────────────
+  const board = document.getElementById('board');
+
+  function renderBoard(winningIndices = new Set()) {
+    board.innerHTML = '';
+    CELLS.forEach((cell, i) => {
+      const el = document.createElement('div');
+      el.className = 'cell' +
+        (cell.free ? ' free' : '') +
+        (state[i] && !cell.free ? ' marked' : '') +
+        (winningIndices.has(i) ? ' winning' : '');
+
+      // label lines
+      const labelLines = cell.label.split('\n');
+
+      el.innerHTML = `
+        <span class="icon">${cell.icon}</span>
+        <span class="label">${labelLines.map(l => `<span>${l}</span>`).join('<br>')}</span>
+        ${cell.sub ? `<span class="sub">${cell.sub}</span>` : ''}
+      `;
+
+      if (!cell.free) {
+        el.addEventListener('click', () => toggle(i));
+      }
+
+      board.appendChild(el);
+    });
+  }
+
+  // ─── TOGGLE ─────────────────────────────────────────────────────────────
+  let alreadyWon = false;
+
+  function toggle(i) {
+    state[i] = !state[i];
+    saveState();
+
+    const wins = checkWins();
+    renderBoard(wins.indices);
+
+    if (wins.lines.length > 0 && !alreadyWon) {
+      alreadyWon = true;
+      setTimeout(() => showWin(wins.lines.length), 300);
+    } else if (wins.lines.length === 0) {
+      alreadyWon = false;
+    }
+  }
+
+  // ─── WIN CHECK ──────────────────────────────────────────────────────────
+  function checkWins() {
+    const winLines = WIN_LINES.filter(line => line.every(i => state[i]));
+    const indices  = new Set(winLines.flat());
+    return { lines: winLines, indices };
+  }
+
+  // ─── WIN DISPLAY ────────────────────────────────────────────────────────
+  function showWin(lineCount) {
+    const msgs = [
+      'Masz 5 w rzędzie!\nJesteś legendą rejonu! 📦🚀',
+      `Aż ${lineCount} linie! Absolutna legenda! 🏆📦`,
+    ];
+    document.getElementById('modalMsg').innerHTML =
+      (lineCount > 1 ? msgs[1] : msgs[0]).replace('\n', '<br>');
+    document.getElementById('modalOverlay').classList.add('show');
+    fireConfetti();
+  }
+
+  function fireConfetti() {
+    const duration = 4000;
+    const end = Date.now() + duration;
+
+    const colors = ['#9146ff','#ffce00','#ff4d4d','#4dffa6','#4d9fff'];
+
+    (function frame() {
+      confetti({
+        particleCount: 6,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.65 },
+        colors,
+      });
+      confetti({
+        particleCount: 6,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.65 },
+        colors,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+
+    // big burst
+    confetti({
+      particleCount: 140,
+      spread: 90,
+      origin: { x: 0.5, y: 0.5 },
+      colors,
+      startVelocity: 40,
+    });
+  }
+
+  // ─── RESET ──────────────────────────────────────────────────────────────
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (!confirm('Na pewno wyczyścić kartę? 🗑️')) return;
+    state = new Array(25).fill(false);
+    state[FREE_IDX] = true;
+    alreadyWon = false;
+    saveState();
+    renderBoard();
+  });
+
+  document.getElementById('btnCloseModal').addEventListener('click', () => {
+    document.getElementById('modalOverlay').classList.remove('show');
+  });
+
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget)
+      document.getElementById('modalOverlay').classList.remove('show');
+  });
+
+  // ─── INIT ────────────────────────────────────────────────────────────────
+  const initialWins = checkWins();
+  renderBoard(initialWins.indices);
+  if (initialWins.lines.length > 0) alreadyWon = true;
+</script>
+</body>
+</html>
