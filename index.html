@@ -162,17 +162,6 @@
       line-height: 1.2;
     }
 
-    /* FREE cell */
-    .cell.free {
-      background: linear-gradient(135deg, var(--yellow) 0%, var(--gold) 100%);
-      border-color: var(--gold);
-      cursor: default;
-      box-shadow: 0 2px 12px rgba(245, 166, 35, 0.4);
-    }
-
-    .cell.free .label { color: #3d1e00; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 900; }
-    .cell.free .sub   { color: #6b3a00; }
-    .cell.free .icon  { font-size: clamp(1.4rem, 4vw, 1.8rem); }
 
     /* MARKED state */
     .cell.marked:not(.free) {
@@ -356,7 +345,7 @@
 
     { icon:'⚖️', label:'Wyjątkowo ciężka paczka',          sub:'a co tam jest?!' },
     { icon:'🌧️', label:'Dostawa w deszczu',                sub: '' },
-    { icon:'⭐', label:'FREE\nDostawa zaliczona!',          sub:'✓', free: true },
+    { icon:'🗺️', label:'GPS poprowadził w złą stronę',      sub:'gdzie ja jestem?!' },
     { icon:'⏰', label:'Poślizg na trasie',                 sub:'opóźnienie' },
     { icon:'↩️', label:'Zwrot od klienta',                  sub: '' },
 
@@ -373,7 +362,6 @@
     { icon:'🏁', label:'Rejon skończony wcześniej niż zwykle', sub:'legenda!' },
   ];
 
-  const FREE_IDX = 12; // center
   const STORAGE_KEY = 'bingo-kuriera-v1';
 
   // Win lines: rows, cols, diagonals
@@ -391,15 +379,10 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length === 25) {
-          parsed[FREE_IDX] = true; // always marked
-          return parsed;
-        }
+        if (Array.isArray(parsed) && parsed.length === 25) return parsed;
       }
     } catch {}
-    const s = new Array(25).fill(false);
-    s[FREE_IDX] = true;
-    return s;
+    return new Array(25).fill(false);
   }
 
   function saveState() {
@@ -510,7 +493,6 @@
   document.getElementById('btnReset').addEventListener('click', () => {
     if (!confirm('Na pewno wyczyścić kartę? 🗑️')) return;
     state = new Array(25).fill(false);
-    state[FREE_IDX] = true;
     alreadyWon = false;
     saveState();
     renderBoard();
